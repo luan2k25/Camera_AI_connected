@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from camera import Camera
-from map_manager import MapManager
-import storage
-from edge import Edge
+from .camera import Camera
+from .map_manager import MapManager
+import map.storage
+from .edge import Edge
 
 
 
