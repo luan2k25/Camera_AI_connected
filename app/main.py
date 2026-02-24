@@ -6,6 +6,7 @@ from ultralytics import YOLO
 import numpy as np
 import time
 from map.ui import MapApp
+from collections import deque
 
 
 class PromptTrackingApp:
@@ -27,6 +28,8 @@ class PromptTrackingApp:
         self.prev_center = None
         self.last_center = None
         self.exit_vector = None  # ← BIẾN HƯỚNG RỜI KHỎI
+        self.center_history = deque(maxlen=8)  # lưu 8 frame gần nhất
+
 
         # UI
         self.video_label = tk.Label(root)
@@ -74,6 +77,9 @@ class PromptTrackingApp:
         self.target_id = None
         self.prev_center = None
         self.last_center = None
+        self.center_history.clear()
+        self.exit_vector = None
+
 
     def on_click(self, event):
         x_click = event.x
@@ -88,17 +94,28 @@ class PromptTrackingApp:
                 print(f"Locked ID: {obj_id}")
                 break
 
-    def compute_exit_vector(self): #Đọc hướng rời khỏi camera
-        if self.prev_center is None or self.last_center is None:
+    def compute_exit_vector(self):
+        if len(self.center_history) < 3:
             return None
 
-        v = np.array(self.last_center) - np.array(self.prev_center)
-        norm = np.linalg.norm(v)
 
-        if norm == 0:
+        weights = np.arange(1, len(self.center_history))
+        vectors = []
+
+        for i in range(1, len(self.center_history)):
+            v = np.array(self.center_history[i]) - np.array(self.center_history[i-1])
+            vectors.append(v)
+
+        vectors = np.array(vectors)
+
+        weighted = np.average(vectors, axis=0, weights=weights)
+
+        norm = np.linalg.norm(weighted)
+        if norm < 1e-6:
             return None
 
-        return v / norm  # vector đơn vị
+        return weighted / norm
+
 
     def update_frame(self): #Vẽ frame liên tục
         if self.running and self.cap:
@@ -132,8 +149,8 @@ class PromptTrackingApp:
                         cx = (x1 + x2) // 2
                         cy = (y1 + y2) // 2
 
-                        self.prev_center = self.last_center
                         self.last_center = (cx, cy)
+                        self.center_history.append((cx, cy))
 
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
 
