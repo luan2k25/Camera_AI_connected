@@ -7,6 +7,11 @@ import numpy as np
 import time
 from map.ui import MapApp
 from collections import deque
+from map.navigation import CameraGraph, DirectionRouter
+import os
+import json
+
+
 
 
 class PromptTrackingApp:
@@ -46,6 +51,58 @@ class PromptTrackingApp:
 
         control = tk.Frame(root)
         control.pack()
+
+
+
+        # Camera graph system
+        self.current_camera_id = 0  # camera đang xem
+
+        self.camera_graph = CameraGraph()
+
+        # ==============================
+        # LOAD CAMERA CONFIG FROM JSON
+        # ==============================
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        json_path = os.path.join(
+            base_dir,
+            "map",
+            "data",
+            "cameras.json"
+        )
+
+        with open(json_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        self.camera_graph = CameraGraph()
+        self.camera_graph.load_from_json(config)
+
+        self.router = DirectionRouter(self.camera_graph)
+
+        # Camera mặc định = camera đầu tiên
+        self.current_camera_id = config["cameras"][0]["id"]
+
+        
+
+        self.camera_label = tk.Label(root, text=f"Current Camera: {self.current_camera_id}", font=("Arial", 12, "bold"))
+        self.camera_label.pack()
+
+        # Camera selector
+        self.camera_var = tk.IntVar(value=self.current_camera_id)
+
+        camera_ids = list(self.camera_graph.positions.keys())
+
+        self.camera_selector = tk.OptionMenu(
+            root,
+            self.camera_var,
+            *camera_ids,
+            command=self.set_start_camera
+        )
+        self.camera_selector.pack()
+
+
+
 
 
         #Button
@@ -179,6 +236,8 @@ class PromptTrackingApp:
 
                 print("Saved history:", history_entry)
 
+
+                self.switch_camera_by_vector()
                 self.running = False
                 self.unlock()
 
@@ -218,6 +277,40 @@ class PromptTrackingApp:
         maps_window = tk.Toplevel(self.root)
         MapApp(maps_window)
 
+
+    def switch_camera_by_vector(self):
+        if self.exit_vector is None:
+            return
+
+        next_cam = self.router.next_camera(
+            self.current_camera_id,
+            np.array(self.exit_vector)
+        )
+
+        if next_cam is not None:
+            print(f"Switching from Camera {self.current_camera_id} → {next_cam}")
+            self.current_camera_id = next_cam
+
+            # Update UI
+            self.camera_label.config(text=f"Current Camera: {self.current_camera_id}")
+
+            # TODO: load video source tương ứng camera mới
+
+    def set_start_camera(self, cam_id):
+        if cam_id not in self.camera_graph.positions:
+            print("Camera not found:", cam_id)
+            return
+
+        print(f"Manually switched to Camera {cam_id}")
+
+        self.running = False
+        self.unlock()
+
+        self.current_camera_id = cam_id
+
+        self.camera_label.config(
+            text=f"Current Camera: {self.current_camera_id}"
+        )
 
 
 

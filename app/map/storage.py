@@ -1,23 +1,27 @@
 import json
 import os
 
-DATA_FILE = "data/cameras.json"
+BASE_DIR = os.path.dirname(__file__)
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_FILE = os.path.join(DATA_DIR, "cameras.json")
+
 
 def save_all(cameras, edges):
-    os.makedirs("data", exist_ok=True)
+    # Tạo thư mục data nếu chưa có
+    os.makedirs(DATA_DIR, exist_ok=True)
 
     data = {
         "cameras": [cam.to_dict() for cam in cameras],
         "edges": [edge.to_dict() for edge in edges]
     }
 
+    # Lưu file JSON
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+    # Tạo thư mục riêng cho từng camera
+    for cam in cameras:
+        cam_folder = os.path.join(DATA_DIR, cam.id)
+        os.makedirs(cam_folder, exist_ok=True)
 
-def load_cameras():
-    if not os.path.exists(DATA_FILE):
-        return []
-
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+    print("Saved cameras and created folders successfully.")
