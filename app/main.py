@@ -37,11 +37,12 @@ class PromptTrackingApp:
         self.frame_count = 0
 
         # ===== Camera System =====
-        base_dir = os.path.dirname(__file__)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(base_dir)  # đi lên 1 cấp
 
-        self.base_camera_dir = os.path.join(base_dir, "map", "data")  # video
-        self.json_data_dir = os.path.join(project_root, "data")       # cameras.json
+        # data nằm ngang cấp với folder app
+        self.base_camera_dir = os.path.join(project_root, "data")   # video
+        self.json_data_dir = os.path.join(project_root, "data")     # cameras.json
 
         self.camera_positions = self.load_camera_positions()
 
@@ -105,16 +106,26 @@ class PromptTrackingApp:
 
 
     def select_start_camera(self):
+
+        if not self.camera_positions:
+            print("No cameras found in map.")
+            return
+
         select_window = tk.Toplevel(self.root)
         select_window.title("Chọn Camera Bắt Đầu")
 
-        for cam_name in self.cameras.keys():
-            tk.Button(
-                select_window,
-                text=cam_name,
-                width=20,
-                command=lambda name=cam_name: self.open_camera(name, select_window)
-            ).pack(pady=5)
+        for cam_name in self.camera_positions.keys():
+
+            # Chỉ hiển thị nếu camera đó có video
+            if cam_name in self.cameras:
+
+                tk.Button(
+                    select_window,
+                    text=cam_name,
+                    width=20,
+                    command=lambda name=cam_name: self.open_camera(name, select_window)
+                ).pack(pady=5)
+
 
     def open_camera(self, cam_name, window=None):
 
