@@ -64,9 +64,6 @@ class PromptTrackingApp:
         tk.Button(control, text="Show History", command=self.show_history).grid(row=0, column=4)
         tk.Button(control, text="Maps Setting", command=self.open_maps).grid(row=0, column=5)
 
-    # =====================================================
-    # CAMERA SYSTEM
-    # =====================================================
 
     def load_cameras(self):
         cameras = {}
