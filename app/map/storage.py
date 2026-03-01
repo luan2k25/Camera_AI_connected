@@ -1,9 +1,25 @@
 import json
 import os
+import sys
 
-# Thư mục và file cố định
-DATA_DIR = "data"
-DATA_FILE = "data/cameras.json"
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.abspath(relative_path)
+
+
+
+def get_data_dir():
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.abspath(".")
+    return os.path.join(base_dir, "data")
+
+DATA_DIR = get_data_dir()
+DATA_FILE = os.path.join(DATA_DIR, "cameras.json")
+
+
 
 
 def save_all(cameras, edges):

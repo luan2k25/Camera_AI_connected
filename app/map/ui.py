@@ -2,11 +2,17 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import shutil
+import sys
 
 from .camera import Camera
 from .map_manager import MapManager
 from . import storage
 from .edge import Edge
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.abspath(relative_path)
 
 
 class MapApp:
@@ -98,7 +104,7 @@ class MapApp:
                 edge.cam2.edges.remove(edge)
 
         # Xóa folder camera
-        cam_folder = os.path.join("data", self.selected_camera.id)
+        cam_folder = resource_path(os.path.join("data", self.selected_camera.id))
         if os.path.exists(cam_folder):
             shutil.rmtree(cam_folder)
 
@@ -113,17 +119,21 @@ class MapApp:
             # Lưu JSON
             storage.save_all(self.cameras, self.edges)
 
-            # Đồng bộ folder camera
-            os.makedirs("data", exist_ok=True)
+            data_dir = storage.DATA_DIR
+            os.makedirs(data_dir, exist_ok=True)
 
             current_ids = {cam.id for cam in self.cameras}
 
+            # Tạo folder cho từng camera
             for cam_id in current_ids:
-                os.makedirs(os.path.join("data", cam_id), exist_ok=True)
+                os.makedirs(
+                    os.path.join(data_dir, cam_id),
+                    exist_ok=True
+                )
 
             # Xóa folder thừa
-            for item in os.listdir("data"):
-                path = os.path.join("data", item)
+            for item in os.listdir(data_dir):
+                path = os.path.join(data_dir, item)
                 if (
                     os.path.isdir(path)
                     and item.startswith("cam")
@@ -136,7 +146,8 @@ class MapApp:
         except Exception as e:
             messagebox.showerror("Error", f"Save failed:\n{str(e)}")
 
-    # ================= EDGE =================
+
+        # ================= EDGE =================
 
     def toggle_edge_mode(self):
         self.edge_mode = not self.edge_mode
@@ -205,9 +216,9 @@ class MapApp:
         self.selected_camera = None
         self.edge_start = None
         Camera.counter = 1
-
+        data_dir = storage.DATA_DIR
         # Xóa toàn bộ thư mục data
-        if os.path.exists("data"):
-            shutil.rmtree("data")
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir)
 
         messagebox.showinfo("Delete All", "All cameras deleted")

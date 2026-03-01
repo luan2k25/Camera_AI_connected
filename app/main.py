@@ -9,6 +9,31 @@ from collections import deque
 import os
 import json
 import math
+import sys
+
+def resource_path(relative_path):
+    """
+    Dùng cho file đóng gói (model, asset)
+    """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.abspath(relative_path)
+
+
+def get_data_dir():
+    """
+    Dùng cho dữ liệu người dùng (data folder ngoài exe)
+    """
+    if getattr(sys, 'frozen', False):
+        # Khi chạy exe
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        # Khi chạy bằng python
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    return os.path.join(base_dir, "data")
+
+
 
 
 class PromptTrackingApp:
@@ -16,7 +41,9 @@ class PromptTrackingApp:
         self.root = root
         self.root.title("Multi Camera AI Tracking")
 
-        self.yolo = YOLO("yolov8n.pt")
+        self.yolo = YOLO(resource_path("app/models/yolov8n.pt"))
+
+
 
         self.cap = None
         self.running = False
@@ -37,12 +64,9 @@ class PromptTrackingApp:
         self.frame_count = 0
 
         # ===== Camera System =====
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(base_dir)  # đi lên 1 cấp
-
-        # data nằm ngang cấp với folder app
-        self.base_camera_dir = os.path.join(project_root, "data")   # video
-        self.json_data_dir = os.path.join(project_root, "data")     # cameras.json
+        self.base_camera_dir = get_data_dir()
+        self.json_data_dir = get_data_dir()
+        # cameras.json
 
         self.camera_positions = self.load_camera_positions()
 
@@ -54,6 +78,16 @@ class PromptTrackingApp:
         self.video_label = tk.Label(root)
         self.video_label.pack()
         self.video_label.bind("<Button-1>", self.on_click)
+
+        # ===== Current Camera Tag =====
+        self.current_camera_label = tk.Label(
+            root,
+            text="Current Camera: None",
+            font=("Arial", 12, "bold"),
+            fg="red"
+        )
+        self.current_camera_label.pack()
+
 
         control = tk.Frame(root)
         control.pack()
@@ -133,6 +167,7 @@ class PromptTrackingApp:
             self.cap.release()
 
         self.current_camera = cam_name
+        self.current_camera_label.config(text=f"Current Camera: {cam_name}")
         video_path = self.cameras.get(cam_name)
 
         if video_path:
